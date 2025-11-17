@@ -2,7 +2,7 @@
 server:
   service:
     type: LoadBalancer
-    servicePort: 80
+    servicePort: 9090
     targetPort: 9090
   
   persistentVolume:

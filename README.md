@@ -93,33 +93,33 @@ This enables LoadBalancer services to get external IPs.
 
 - **Namespace**: `monitoring`
 - **Service Type**: LoadBalancer
-- **Port**: 80 (mapped to internal 9090)
+- **Port**: 9090
 - **Features**:
   - Kubernetes metrics collection (nodes, pods, services)
   - cAdvisor metrics (container metrics)
   - Kube-state-metrics (cluster state)
   - Node exporter (system metrics)
-- **Access**: Get the external IP with `kubectl get svc -n monitoring prometheus-server`
+- **Access**: `http://<EXTERNAL_IP>:9090`
 
 ### Grafana
 
 - **Namespace**: `monitoring`
 - **Service Type**: LoadBalancer
-- **Port**: 80 (mapped to internal 3000)
+- **Port**: 3000
 - **Default Credentials**:
   - Username: `admin`
   - Password: `admin`
 - **Pre-configured**: Prometheus datasource already connected
-- **Access**: Get the external IP with `kubectl get svc -n monitoring grafana`
+- **Access**: `http://<EXTERNAL_IP>:3000`
 
 ### Microservice A
 
 - **Namespace**: `serviceA`
 - **Service Type**: LoadBalancer
 - **Image**: `nginx:latest`
-- **Port**: 80
+- **Port**: 8080
 - **Prometheus**: Annotations added for metric scraping
-- **Access**: Get the external IP with `kubectl get svc -n serviceA microservice-a`
+- **Access**: `http://<EXTERNAL_IP>:8080`
 
 ## 🔍 Useful Commands
 
@@ -141,26 +141,23 @@ kubectl get application app-of-apps -n argocd -o yaml
 kubectl get svc -n monitoring
 ```
 
-### View Prometheus Metrics
+### Get Service Access URLs
 
 ```bash
-# Get Prometheus external IP
-PROMETHEUS_IP=$(kubectl get svc -n monitoring prometheus-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Prometheus: http://$PROMETHEUS_IP"
+# Get the shared external IP (minikube tunnel uses same IP for all services)
+EXTERNAL_IP=$(kubectl get svc -n monitoring prometheus-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Display all service URLs with their unique ports
+echo "🔍 Prometheus: http://$EXTERNAL_IP:9090"
+echo "📊 Grafana:    http://$EXTERNAL_IP:3000"
+echo "🚀 Microservice-A: http://$EXTERNAL_IP:8080"
 ```
 
-### View Grafana Dashboard
+Or check individual services:
 
 ```bash
-# Get Grafana external IP
-GRAFANA_IP=$(kubectl get svc -n monitoring grafana -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Grafana: http://$GRAFANA_IP"
-```
-
-### View Microservice A Service
-
-```bash
-kubectl get svc -n serviceA microservice-a
+kubectl get svc -n monitoring
+kubectl get svc -n serviceA
 ```
 
 ### View All Pods
@@ -174,7 +171,7 @@ kubectl get pods --all-namespaces
 ### Prometheus
 
 The Prometheus Helm chart is configured with:
-- **Service type**: LoadBalancer on port 80
+- **Service type**: LoadBalancer on port 9090
 - **Persistence**: Disabled (for simplicity)
 - **Kubernetes scraping**: Configured for:
   - API servers
@@ -191,9 +188,9 @@ The Prometheus Helm chart is configured with:
 
 The Grafana Helm chart is configured with:
 - **Admin credentials**: `admin/admin`
-- **Service type**: LoadBalancer on port 80
+- **Service type**: LoadBalancer on port 3000
 - **Persistence**: Disabled (for simplicity)
-- **Datasource**: Pre-configured Prometheus connection at `http://prometheus-server.monitoring.svc.cluster.local:80`
+- **Datasource**: Pre-configured Prometheus connection at `http://prometheus-server.monitoring.svc.cluster.local:9090`
 - **Auto-refresh**: 30s interval for dashboards
 
 ### Microservice A
@@ -201,7 +198,7 @@ The Grafana Helm chart is configured with:
 A simple nginx-based microservice with:
 - 1 replica
 - Resource limits set (100m-200m CPU, 128-256Mi RAM)
-- LoadBalancer service on port 80
+- LoadBalancer service on port 8080 (container runs on 80)
 - Prometheus scraping annotations enabled
 
 ## 🔄 Sync Policies
