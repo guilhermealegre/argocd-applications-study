@@ -10,15 +10,21 @@ argocd-applications-study/
 ├── apps/                          # ArgoCD Application definitions
 │   ├── grafana.yaml              # Grafana Application
 │   ├── prometheus.yaml           # Prometheus Application
-│   └── microservice-a.yaml       # Sample microservice Application
+│   ├── microservice-a.yaml       # Sample microservice Application
+│   └── gateway-api.yaml          # Gateway API Application
 └── manifests/                     # Kubernetes manifests and Helm values
+    ├── gateway-api/
+    │   └── gateway.yaml          # Main Gateway resource
     ├── grafana/
-    │   └── values.yaml           # Grafana Helm values
+    │   ├── values.yaml           # Grafana Helm values
+    │   └── httproute.yaml        # Grafana HTTPRoute
     ├── prometheus/
-    │   └── values.yaml           # Prometheus Helm values
+    │   ├── values.yaml           # Prometheus Helm values
+    │   └── httproute.yaml        # Prometheus HTTPRoute
     └── microservice-a/
         ├── deployment.yaml       # Deployment manifest
-        └── service.yaml          # Service manifest
+        ├── service.yaml          # Service manifest
+        └── httproute.yaml        # Microservice-A HTTPRoute
 ```
 
 ## 🚀 Getting Started
@@ -77,7 +83,11 @@ If you need to change it, update the `repoURL` in:
 kubectl apply -f app-of-apps.yaml
 ```
 
-### 6. Enable LoadBalancer Services
+### 6. Access Your Services
+
+You have **two options** for accessing your services:
+
+#### Option A: LoadBalancer + Minikube Tunnel (Simple)
 
 In a separate terminal, run:
 
@@ -86,6 +96,29 @@ minikube tunnel
 ```
 
 This enables LoadBalancer services to get external IPs.
+
+Access services via:
+- Prometheus: `http://<EXTERNAL_IP>:9090`
+- Grafana: `http://<EXTERNAL_IP>:3000`
+- Microservice-A: `http://<EXTERNAL_IP>:3001`
+
+#### Option B: Gateway API (Recommended - Production-like)
+
+Install Gateway API for cleaner URLs:
+
+```bash
+# See GATEWAY-API-SETUP.md for detailed instructions
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml
+kubectl apply -f https://github.com/nginxinc/nginx-gateway-fabric/releases/download/v1.1.0/nginx-gateway.yaml
+kubectl apply -f manifests/gateway-api/
+```
+
+Access services via:
+- Prometheus: `http://prometheus.local`
+- Grafana: `http://grafana.local`
+- Microservice-A: `http://microservice-a.local`
+
+📖 **Full Gateway API guide**: See `GATEWAY-API-SETUP.md`
 
 ## 📦 Deployed Applications
 
@@ -117,9 +150,9 @@ This enables LoadBalancer services to get external IPs.
 - **Namespace**: `serviceA`
 - **Service Type**: LoadBalancer
 - **Image**: `nginx:latest`
-- **Port**: 8080
+- **Port**: 3001
 - **Prometheus**: Annotations added for metric scraping
-- **Access**: `http://<EXTERNAL_IP>:8080`
+- **Access**: `http://<EXTERNAL_IP>:3001`
 
 ## 🔍 Useful Commands
 
@@ -150,7 +183,7 @@ EXTERNAL_IP=$(kubectl get svc -n monitoring prometheus-server -o jsonpath='{.sta
 # Display all service URLs with their unique ports
 echo "🔍 Prometheus: http://$EXTERNAL_IP:9090"
 echo "📊 Grafana:    http://$EXTERNAL_IP:3000"
-echo "🚀 Microservice-A: http://$EXTERNAL_IP:8080"
+echo "🚀 Microservice-A: http://$EXTERNAL_IP:3001"
 ```
 
 Or check individual services:
@@ -198,7 +231,7 @@ The Grafana Helm chart is configured with:
 A simple nginx-based microservice with:
 - 1 replica
 - Resource limits set (100m-200m CPU, 128-256Mi RAM)
-- LoadBalancer service on port 8080 (container runs on 80)
+- LoadBalancer service on port 3001 (container runs on 80)
 - Prometheus scraping annotations enabled
 
 ## 🔄 Sync Policies
@@ -227,8 +260,20 @@ kubectl delete namespace serviceA
 ## 📝 Notes
 
 - This setup is designed for local development with Minikube
-- LoadBalancer services require `minikube tunnel` to be running
+- **Two access options**:
+  - **LoadBalancer**: Requires `minikube tunnel` to be running
+  - **Gateway API**: More production-like with clean URLs (see `GATEWAY-API-SETUP.md`)
 - All sync policies are set to automated for convenience
 - Prometheus and Grafana deploy to `monitoring` namespace
 - Microservice A deploys to `serviceA` namespace
+
+## 🌐 Gateway API Alternative
+
+For a more production-like setup with clean URLs, see **[GATEWAY-API-SETUP.md](GATEWAY-API-SETUP.md)**
+
+Benefits:
+- ✅ Single entry point
+- ✅ Clean URLs: `http://grafana.local` instead of `http://192.168.49.2:3000`
+- ✅ No need for minikube tunnel
+- ✅ Production-ready routing
 
