@@ -18,11 +18,11 @@ server:
 
 # Alert Manager - optional, enable if needed
 alertmanager:
-  enabled: false
+  enabled: true
 
 # Pushgateway - optional
 pushgateway:
-  enabled: false
+  enabled: true
 
 # Kube State Metrics - collects Kubernetes cluster metrics
 kube-state-metrics:
